@@ -129,6 +129,7 @@ func getJWT(loginApi string,usrname string,passwd string) string{
 func SaveConfig(url string,config string) bool {
 	domain := url[7:]
 	FolderName = strings.Replace(domain,".","_",-1)
+	FolderName = strings.Replace(FolderName,":","_",-1)
 	FolderName = "results/" + FolderName
 	if !exists(FolderName) {
 		err := os.MkdirAll(FolderName, 0766)
