@@ -1,4 +1,4 @@
-[](banner.png)
+[](/banner.png)
 ## usage
 nacosleak.exe -url http://nacosurl [-u]username [-p]password
 
