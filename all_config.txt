@@ -1,0 +1,406 @@
+[{"resource":"xcx","limitApp":"default","grade":1,"count":500.0,"strategy":0,"refResource":null,"controlBehavior":0,"warmUpPeriodSec":10,"maxQueueingTimeMs":500,"clusterMode":false,"clusterConfig":{"flowId":null,"thresholdType":0,"fallbackToLocalWhenFail":true,"strategy":0,"sampleCount":10,"windowIntervalMs":1000}}][{"id":24,"app":"api-gateway","ip":"172.16.177.65","port":8719,"limitApp":"default","resource":"xcx","grade":1,"count":500.0,"strategy":0,"refResource":null,"controlBehavior":0,"warmUpPeriodSec":null,"maxQueueingTimeMs":null,"clusterMode":false,"clusterConfig":{"flowId":null,"thresholdType":0,"fallbackToLocalWhenFail":true,"strategy":0,"sampleCount":10,"windowIntervalMs":1000},"gmtCreate":1646297626179,"gmtModified":1646297720680}]server:
+  port: 9200
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    accept-count: 200 #等待队列长度
+    max-connections: 10000 #一瞬间最大支持的并发的连接数
+    threads:
+      max: 1000        #最大工作线程数量
+      min-spare: 20   #最小工作线程数量
+
+spring:
+  application:
+    name: api-gateway-releasetest
+  data:
+    # mongodb
+    mongodb:
+      # uri: mongodb://goodsales:Jpbnbgxmcakvewtfx47Lsvs[ipfpdm@172.17.31.86:27017,172.17.31.87:27017,172.16.177.66:27017/goodsales
+      host: 172.18.0.10   #mongo服务器
+      port: 27017 #默认端口
+      database: goodsales    #指定操作的数据库
+      username: goodsales_stage
+      password: vB*V`miqAFEry1=!jbK5
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 172.18.0.10:8848
+        enabled: true
+        metadata:
+          preserved.heart.beat.interval: 1500
+          preserved.heart.beat.timeout: 5000
+          preserved.ip.delete.timeout: 5000
+    # sentinel:
+    #   transport:
+    #     dashboard: 172.17.243.49:8180
+    #   datasource:
+    #     flow:
+    #       nacos:
+    #         server-addr: 172.17.243.49:8848
+    #         data-id: ${spring.application.name}-flow-rules
+    #         group-id: SENTINEL_GROUP
+    #         data-type: json
+    #         rule-type: flow
+    #   eager: true
+    gateway:
+      discovery:
+        locator:
+        enabled: true
+        lowerCaseServiceId: true  
+      #让 gateway可以发现nacos中的微服务
+      routes:
+        #小程序路由
+        - id: xcx
+          uri: lb://xcx-goodThings-server-releasetest    #请求最终要被转发的地址   lb指的是从nacos中按照名称获取微服务,并遵循负载均衡策略
+          # order: 1      #路由优先级，数字越小，优先级越高
+          predicates:       #断言 判断条件，返回值是boolean 转发请求要返回的条件 （可以写多个）、
+            - Path=/xcx/**    #当请求路径满足path指定的规则时，此路由信息才会正常转发
+          filters:    #过滤器（在请求传递过程中，对请求做一些手脚）
+            - StripPrefix=1    # 在请求转发之前去掉一层路径
+
+        #saas路由
+        - id: saas
+          uri: lb://igoodsale-saas-service-releasetest
+          predicates:
+            - Path=/saas/**
+          filters:
+            - StripPrefix=1
+
+        #用户中心路由
+        - id: uc
+          uri: lb://ucetner-server-releasetest
+          predicates:
+            - Path=/uc/**
+          filters:
+            - StripPrefix=1
+
+        #用户中心路由
+        - id: cashier
+          uri: lb://cashier-server-releasetest
+          predicates:
+            - Path=/cashier/**
+          filters:
+            - StripPrefix=1
+        #超管端
+        - id: super_admin
+          uri: lb://super-admin-releasetest
+          predicates:
+            - Path=/super_admin/**
+          filters:
+            - StripPrefix=1
+        #openapi
+        - id: api
+          uri: lb://open-api-releasetest
+          predicates:
+            - Path=/api/**
+          filters:
+            - StripPrefix=1  
+        
+        #供应链路由
+        - id: supply_chain
+          uri: lb://supply-chain-api-releasetest
+          predicates:
+            - Path=/supply_chain/**
+          filters:
+            - StripPrefix=1
+
+        - id: center-data
+          uri: lb://center-data-server-releasetest
+          predicates:
+            - Path=/center-data/**
+          filters:
+            - StripPrefix=1
+
+# ribbon:
+#   eager-load:
+#     enabled: true
+#     clients: lb-saas,lb-xcx,lb-uc,lb-cashier
+# #saas负载地址
+# lb-saas:
+#   ribbon:
+#     # 负载地址
+#     listOfServers: localhost:8088
+#     # 轮询负载策略
+#     NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RoundRobinRule
+
+# #小程序负载地址
+# lb-xcx:
+#   ribbon:
+#     # 负载地址
+#     listOfServers: localhost:8086
+#     # 轮询负载策略
+#     NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RoundRobinRule
+
+# #权限
+# lb-uc:
+#   ribbon:
+#     # 负载地址
+#     listOfServers: localhost:9300
+#     # 轮询负载策略
+#     NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RoundRobinRule
+
+# #收银
+# lb-cashier:
+#   ribbon:
+#     # 负载地址
+#     listOfServers: localhost:8091,www.baidu.com
+#     # 轮询负载策略
+#     NFLoadBalancerRuleClassName: com.netflix.loadbalancer.BestAvailableRule
+
+logging:
+  level:
+    com.igoodsale.gateway: info
+
+dubbo:
+  protocol:
+    name: dubbo
+    port: 20897
+  scan:
+    #需要使用到提供者服务的包路径
+    base-packages: com.igoodsale
+  registry:
+    #注册中心请求超时时间（毫秒）
+    address: spring-cloud://172.18.0.10
+    timeout: 120000
+  provider:
+    timeout: 100000
+    loadbalance: leastactive
+  consumer:
+    retries: 0
+    check: false
+    loadbalance: leastactive
+  cloud:
+    subscribed-services: ucetner-server-releasetest
+
+gateway:
+      discovery:
+      # 跨域
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedHeaders: "*"
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+                POST
+                DELETE
+                PUT
+                OPTION
+
+# springboot admin
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+    logfile:
+      external-file: log/gateway_log/log_all.log
+
+#feign调用超时配置
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 600000
+        read-timeout: 600000
+ucenter:
+  url: localhost:9300whitelist:
+  ###################ip白名单################################
+  # ipRegular:
+    #此处id与spring.cloud.gateway.routes里的id一致
+    # - id: xcx
+      # list:
+        # - 127.0.0.1
+        # - 47.95.212.72
+        # - 39.106.105.54
+        # - 39.106.32.156
+        # - 60.205.255.169
+        # - 172.17.243.47
+        # - 172.17.243.48
+        # - 111.18.39.234
+        # - 117.36.118.111
+        # - 172.17.243.49
+        # - 39.106.200.213
+        # - 39.106.186.29
+        # - 39.106.86.14
+        # - 180.97.118.219
+        # - 125.76.213.143
+        # - 111.18.39.154
+        # - 111.18.39.130
+        # - 113.200.106.97
+        # - 47.95.212.72
+        # - 39.105.24.144
+        # - 172.17.2.196
+        # - 47.93.11.120
+        # - 172.17.2.195
+        # - 111.18.39.215
+        # - 39.106.105.54
+        # - 39.106.32.156
+        # - 60.205.255.169
+        # - 192.168.105.14
+        # - 192.168.105.6
+        # - 192.168.105.2
+        # - 111.18.39.206
+        # - 192.168.105.11
+        # - 192.168.105.8
+        # - 172.17.243.49
+        # - 172.17.243.47
+        # - 172.17.243.48
+        # - 127.0.0.1
+        # - 172.17.214.151
+        # - 113.132.10.44
+        # - 113.132.9.191
+        # - 202.100.51.198
+  ##################path路径白名单################################
+  pathRegular:
+    #此处id与spring.cloud.gateway.routes里的id一致
+    - id: saas
+      list:
+        - /order/saveOrderUserInfo
+        - /order/getOrderUserInfoList
+        - /shop/getShop
+        - /wx/**
+        - /stockSellStorage/**
+        - /select/**
+        - /blitemOrder/**
+        - /business/**
+        - /bill/excel
+        - /test/**
+        - /MP_**
+        - /ICiux109na.txt
+        - /error
+        - /login/error
+        - /params/error
+        - /auth/error
+        - /admin/login
+        - /swagger-resources/**
+        - /webjars/**
+        - /v2/**
+        - /swagger-ui.html/**
+        - /static/**
+        - /elmwm/**
+        - /receiptcode/**
+        - /receiptcode
+        - /admin/meituan/shopbind/callback
+        - /admin/meituan/callback
+        - /admin/meituan/releasebind/callback
+        - /admin/meituan/meituanorder
+        - /admin/meituan/meituanordercannel
+        - /admin/meituan/meituanordercomfirm
+        - /admin/meituan/meituanorderrefund
+        - /admin/meituan/meituanordersuccess
+        - /admin/meituan/meituanshippingstatus
+        - /admin/meituan/contrastiveAccount/callback
+        - /admin/meituan/partRefund/callback
+        - /chat/**
+        - /delivery/ss/notify
+        - /delivery/uu/notify
+        - /delivery/zb/notify
+        - /wx/code/**
+        - /wx/userinfocode/**
+        - /wx/getAccessToken
+        - /commerce/order/**
+        - /order/excel
+        - /spu/data/excel
+        - /spu/factory/excel
+        - /poi/data/excel
+        - /loginLog/log/excel
+        - /delivery/data/excel
+        - /receiptcode/list/excel
+        - /distribution/excel
+        - /shanhui/pushPaymentInfo
+        - /phone/send_code
+        - /admin/phone_login
+        - /adminuser/reset_password
+        - /notifyGoodsInfo/**
+        - /multiSpecificationGoods/**
+        - /sms/**
+        - /notifyOrder/**
+        - /commerce/orderGoods/**
+        - /commerce/poiSpu/**
+        - /homeAndSetting/addPreviewStorage
+        - /homeAndSetting/getPreviewStorage
+        - /receiptcode//payNotify
+        - /wxBind/**
+        - /homePageConf/getHomePageConf
+        - /system/file/richImg
+        - /dataScreen/**
+        - /orderAuditCallBack/**
+        - /userBasicInfo/getUserBasicInfoH5
+        - /userBasicInfo/saveUserBasicInfoH5
+        - /basicInfo/getBasicInfoListH5
+        - /vipCard/payCallback
+        - /vipCard/vipCardRefundCallback     
+    - id: xcx
+      list:
+        - /api/vip/**
+        - /api/order/**
+        - /pay-dy-notify/**
+        - /api/detail/**
+        - /api/shopping/**
+        - /api/wx/**
+        - /api/homePage/getUrl
+        - /api/homePage/getBanner
+        - /api/homePage/getHomeListCity
+        - /api/homePage/getCityShop
+        - /error/**
+        - /api/test/**
+        - /testapi/**
+        - /api/order/payNotify
+        - /api/order/getCartList/v1
+        - /user/payNotify
+        - /api/order/refundWxPay
+        - /api/order/refundnotifyurl
+        - /api/distribution/relationsInsert
+        - /api/mcoupon/newUserCoupon
+        - /api/userGiftCard/payNotify
+        - /lbs/**
+        - /api/multiSpec/**
+        - /api/giveGiftCard/ifReceived
+        - /api/channelNewUser/saveNewUser
+        - /api/multiSpec/getShopNotice
+        - /api/multiSpec/getShopConf
+        - /api/shopCode/createShopCode
+        - /api/homeAndSetting/getByTenantId
+        - /api/distributionManage/*
+        - /api/homeAndSetting/*
+        - /api/takeGoodsCode/useOneTakeGoodsCode
+        - /api/personalCenter/*
+        - /api/distributionManage/getRebateExpenses
+        - /api/activity/mActivityDetail
+        - /api/activity/mActivityRandomPrizeRecord
+        - /api/musercoupon/mUserCouponInfo
+        - /api/musercoupon/mCouponSpus
+        - /api/musercoupon/mCouponShops
+        - /api/musercoupon/consumeCoupon
+        - /pay_notify/**
+        - /api/activity/getOnGoingCouponActivity
+        - /api/vip/getTenantVip
+        - /api/goods/getSpuGoodsSpecs
+        - /api/goods/getMSkuDetail
+        - /api/goods/getMSkuDetail
+        - /api/homePageConf/**
+        - /api/goods/getShopsBySpuId
+    - id: uc
+      list:
+        - /admin/login
+        - /admin/PClogin
+        - /role/checkRole
+        - /admin/redirectLogin
+        - /adminuser/userNameVerify
+        - /admin/phone_login
+    - id: cashier
+      list:
+        - /admin/login
+        - /Version/CheckUpdate
+    - id: api
+      list:
+        - /order/**
+        - /prescription/**
+        - /stock/**
+        - /distribution/**
+
