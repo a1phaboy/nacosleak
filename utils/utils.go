@@ -20,11 +20,11 @@ var Passwd string
 var Url string
 var FolderName string
 
-func GetConfig(url string) string{
-	if strings.LastIndex(url,"/") == len(url)-1 {
+func GetConfig(url string) string {
+	if strings.LastIndex(url, "/") == len(url)-1 {
 		url = url[:len(url)-1]
 	}
-	resp := GetResp(url+CONFIG_API,false)
+	resp := GetResp(url+CONFIG_API, false)
 	if resp == nil {
 		fmt.Println("[ ERROR ] Get Resp fail .")
 		return ""
@@ -38,11 +38,11 @@ func GetConfig(url string) string{
 	err = json.Unmarshal(body, &Config)
 	var yaml_data interface{}
 	var config string
-	for _,v:=range Config["pageItems"].([]interface{}){
+	for _, v := range Config["pageItems"].([]interface{}) {
 
-		for k,v := range v.(map[string]interface{}){
-			if k == "content"{
-				yaml.Unmarshal([]byte(v.(string)),&yaml_data)
+		for k, v := range v.(map[string]interface{}) {
+			if k == "content" {
+				yaml.Unmarshal([]byte(v.(string)), &yaml_data)
 				config = config + v.(string)
 			}
 		}
@@ -52,19 +52,19 @@ func GetConfig(url string) string{
 	return config
 }
 
-func GetResp(targetApi string,Auth bool) (resp *http.Response){
+func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	clt := &http.Client{Transport: tr}
 	reqest, err := http.NewRequest("GET", targetApi, nil)
 	if Auth {
-		jwt := getJWT(Url+LOGIN_API,Usrname,Passwd)
-		if jwt == ""{
+		jwt := getJWT(Url+LOGIN_API, Usrname, Passwd)
+		if jwt == "" {
 			fmt.Println("[ ERROR ] Get JWT fail :username or password is incorrect .")
 			os.Exit(0)
 		}
-		reqest.Header.Set("accessToken",jwt)
+		reqest.Header.Set("accessToken", jwt)
 	}
 	resp, err = clt.Do(reqest)
 	if err != nil {
@@ -72,15 +72,15 @@ func GetResp(targetApi string,Auth bool) (resp *http.Response){
 		os.Exit(0)
 	}
 	if resp.StatusCode == 404 {
-		resp = GetResp(Url + CONFIG_API_NGINX,false)
+		resp = GetResp(Url+CONFIG_API_NGINX, false)
 	}
 	if resp.StatusCode == 401 {
 		fmt.Println("[ INFO ] Get configs Fail, I think nacos.core.auth.enabled is true .")
-		if Usrname != "" && Passwd != ""{
+		if Usrname != "" && Passwd != "" {
 			fmt.Println("[ INFO ] start to get config with Auth .")
-			resp = GetResp(targetApi,true)
+			resp = GetResp(targetApi, true)
 			return resp
-		}else{
+		} else {
 			fmt.Println("[ ERROR ] target nacos needs Auth")
 			os.Exit(0)
 		}
@@ -91,7 +91,7 @@ func GetResp(targetApi string,Auth bool) (resp *http.Response){
 			fmt.Println("[ ERROR ] username or password is incorrect .")
 			os.Exit(0)
 		} else {
-			resp = GetResp(targetApi,true)
+			resp = GetResp(targetApi, true)
 			return resp
 		}
 
@@ -102,23 +102,23 @@ func GetResp(targetApi string,Auth bool) (resp *http.Response){
 	return nil
 }
 
-func getJWT(loginApi string,usrname string,passwd string) string{
-	body := fmt.Sprintf("username=%s&password=%s",usrname,passwd)
+func getJWT(loginApi string, usrname string, passwd string) string {
+	body := fmt.Sprintf("username=%s&password=%s", usrname, passwd)
 	request, _ := http.NewRequest("POST", loginApi, strings.NewReader(body))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp,err :=http.DefaultClient.Do(request)
+	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
-		fmt.Println("[ ERROR ] send to "+ Url +" fail .")
+		fmt.Println("[ ERROR ] send to " + Url + " fail .")
 		return ""
 	}
 	if resp.StatusCode == 403 {
 		return ""
 	}
 	if resp.StatusCode == 404 {
-		jwt := getJWT(Url + LOGIN_API_NGINX,usrname,passwd)
+		jwt := getJWT(Url+LOGIN_API_NGINX, usrname, passwd)
 		return jwt
 	}
-	respBody,_ :=ioutil.ReadAll(resp.Body)
+	respBody, _ := ioutil.ReadAll(resp.Body)
 	respJson := make(map[string]interface{})
 	err = json.Unmarshal(respBody, &respJson)
 	//fmt.Println(respJson["accessToken"])
@@ -126,10 +126,10 @@ func getJWT(loginApi string,usrname string,passwd string) string{
 	return respJson["accessToken"].(string)
 }
 
-func SaveConfig(url string,config string) bool {
+func SaveConfig(url string, config string) bool {
 	domain := url[7:]
-	FolderName = strings.Replace(domain,".","_",-1)
-	FolderName = strings.Replace(FolderName,":","_",-1)
+	FolderName = strings.Replace(domain, ".", "_", -1)
+	FolderName = strings.Replace(FolderName, ":", "_", -1)
 	FolderName = "results/" + FolderName
 	if !exists(FolderName) {
 		err := os.MkdirAll(FolderName, 0766)
@@ -137,30 +137,30 @@ func SaveConfig(url string,config string) bool {
 			fmt.Println(err)
 		}
 	}
-	allConf := FolderName+"/all_config.txt"
-	f,err := os.Create(allConf)
+	allConf := FolderName + "all_config.txt"
+	f, err := os.Create(allConf)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
 		return false
 	} else {
-		_,err = f.Write([]byte(config))
+		_, err = f.Write([]byte(config))
 	}
-	fmt.Println("[ SUCCESS ] Save in path:"+allConf)
+	fmt.Println("[ SUCCESS ] Save in path:" + allConf)
 	return true
 }
 
 func SavePasswd(passwdz []string) bool {
-	passwdText := FolderName+"/passwd.txt"
-	f,err := os.Create(passwdText)
+	passwdText := FolderName + "passwd.txt"
+	f, err := os.Create(passwdText)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
 		return false
 	} else {
-		for _,v:= range passwdz {
-			_,err = f.Write([]byte(v))
+		for _, v := range passwdz {
+			_, err = f.Write([]byte(v))
 		}
 	}
-	fmt.Println("[ SUCCESS ] Save in path:"+passwdText)
+	fmt.Println("[ SUCCESS ] Save in path:" + passwdText)
 	return true
 }
 
@@ -175,7 +175,7 @@ func exists(path string) bool {
 	return true
 }
 
-func Banner() string{
+func Banner() string {
 	return `  
   _   _    _    ____ ___  ____  _     _____    _    _  __
  | \ | |  / \  / ___/ _ \/ ___|| |   | ____|  / \  | |/ /
@@ -184,5 +184,3 @@ func Banner() string{
  |_| \_/_/   \_\____\___/|____/|_____|_____/_/   \_\_|\_\
                                          Author:a1  v1.0            `
 }
-
-
