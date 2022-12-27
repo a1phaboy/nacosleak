@@ -47,7 +47,10 @@ func Analyze() {
 			if index == -1 {
 				index = strings.Index(as,"=")
 			}
-			akskText = append(akskText,strings.TrimSpace(as[index+1:]))
+			if index == -1 {
+				continue
+			}
+			akskText = append(akskText,strings.TrimSpace(as))
 		}
 	}
 	utils.SavePasswd(passwdText)

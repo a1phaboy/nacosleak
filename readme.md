@@ -14,3 +14,6 @@ results/
 
 
 => passwd.txt      配置文件中所有的密码，可配合密码喷射
+
+
+=> aksk.txt        配置文件中的aksk
