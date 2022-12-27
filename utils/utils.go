@@ -158,9 +158,26 @@ func SavePasswd(passwdz []string) bool {
 	} else {
 		for _, v := range passwdz {
 			_, err = f.Write([]byte(v))
+			_, err = f.Write([]byte("\n"))
 		}
 	}
 	fmt.Println("[ SUCCESS ] Save in path:" + passwdText)
+	return true
+}
+
+func SaveAKSK(akskz []string) bool {
+	akskText := FolderName + "aksk.txt"
+	f, err := os.Create(akskText)
+	if err != nil {
+		fmt.Println("[ ERROR ] create file fail .")
+		return false
+	} else {
+		for _, v := range akskz {
+			_, err = f.Write([]byte(v))
+			_, err = f.Write([]byte("\n"))
+		}
+	}
+	fmt.Println("[ SUCCESS ] Save in path:" + akskText)
 	return true
 }
 
