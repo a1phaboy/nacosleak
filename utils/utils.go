@@ -39,13 +39,10 @@ func GetConfig(url string) string {
 	var yaml_data interface{}
 	var config string
 	for _, v := range Config["pageItems"].([]interface{}) {
-
-		for k, v := range v.(map[string]interface{}) {
-			if k == "content" {
-				yaml.Unmarshal([]byte(v.(string)), &yaml_data)
-				config = config + v.(string)
-			}
-		}
+		item := v.(map[string]interface{})
+		config = config + fmt.Sprintf("\n--------------------      %v     --------------------\n",item["dataId"].(string))
+		yaml.Unmarshal([]byte(item["content"].(string)), &yaml_data)
+		config = config + item["content"].(string)
 
 	}
 	fmt.Println("[ SUCCESS ] Get configs on nacos success .")
@@ -137,7 +134,7 @@ func SaveConfig(url string, config string) bool {
 			fmt.Println(err)
 		}
 	}
-	allConf := FolderName + "all_config.txt"
+	allConf := FolderName + "/all_config.txt"
 	f, err := os.Create(allConf)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
@@ -150,7 +147,7 @@ func SaveConfig(url string, config string) bool {
 }
 
 func SavePasswd(passwdz []string) bool {
-	passwdText := FolderName + "passwd.txt"
+	passwdText := FolderName + "/passwd.txt"
 	f, err := os.Create(passwdText)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
@@ -166,7 +163,7 @@ func SavePasswd(passwdz []string) bool {
 }
 
 func SaveAKSK(akskz []string) bool {
-	akskText := FolderName + "aksk.txt"
+	akskText := FolderName + "/aksk.txt"
 	f, err := os.Create(akskText)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
