@@ -1,4 +1,4 @@
-![](banner.png)
+![](https://socialify.git.ci/a1phaboy/nacosleak/image?font=Source%20Code%20Pro&language=1&name=1&owner=1&pattern=Circuit%20Board&stargazers=1&theme=Dark)
 ## usage
 nacosleak.exe -url http://nacosurl [-u]username [-p]password
 
