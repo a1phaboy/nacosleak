@@ -3,3 +3,4 @@
 nacosleak_*
 .idea/
 results/
+cmd/cmd_*

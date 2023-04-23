@@ -4,50 +4,23 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	yaml "gopkg.in/yaml.v3"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
-
-var CONFIG_API = "/nacos/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=100&tenant=&search=accurate"
-var CONFIG_API_NGINX = "/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=100&tenant=&search=accurate"
-var LOGIN_API = "/nacos/v1/auth/users/login"
-var LOGIN_API_NGINX = "/v1/auth/users/login"
+const NAMESPACE_API = "/nacos/v1/console/namespaces"
+const NAMESPACE_API_NGINX = "/v1/console/namespaces"
+const CONFIG_API = "/nacos/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=100&tenant=%s&search=accurate"
+const CONFIG_API_NGINX = "/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=100&tenant=%s&search=accurate"
+const LOGIN_API = "/nacos/v1/auth/users/login"
+const LOGIN_API_NGINX = "/v1/auth/users/login"
 var Usrname string
 var Passwd string
 var Url string
 var FolderName string
-
-func GetConfig(url string) string {
-	if strings.LastIndex(url, "/") == len(url)-1 {
-		url = url[:len(url)-1]
-	}
-	resp := GetResp(url+CONFIG_API, false)
-	if resp == nil {
-		fmt.Println("[ ERROR ] Get Resp fail .")
-		return ""
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("[ ERROR ] Get Resp's body fail .")
-		return ""
-	}
-	Config := make(map[string]interface{})
-	err = json.Unmarshal(body, &Config)
-	var yaml_data interface{}
-	var config string
-	for _, v := range Config["pageItems"].([]interface{}) {
-		item := v.(map[string]interface{})
-		config = config + fmt.Sprintf("\n--------------------      %v     --------------------\n",item["dataId"].(string))
-		yaml.Unmarshal([]byte(item["content"].(string)), &yaml_data)
-		config = config + item["content"].(string)
-
-	}
-	fmt.Println("[ SUCCESS ] Get configs on nacos success .")
-	return config
-}
+var NameSpaceFolder []string
 
 func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 	tr := &http.Transport{
@@ -69,7 +42,8 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 		os.Exit(0)
 	}
 	if resp.StatusCode == 404 {
-		resp = GetResp(Url+CONFIG_API_NGINX, false)
+		fmt.Println("[ ERROR ] Cannot connect to target, plz check out ")
+		os.Exit(0)
 	}
 	if resp.StatusCode == 401 {
 		fmt.Println("[ INFO ] Get configs Fail, I think nacos.core.auth.enabled is true .")
@@ -99,6 +73,13 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 	return nil
 }
 
+func UrlFormat (url string ) string {
+	if strings.LastIndex(url, "/") == len(url)-1 {
+		url = url[:len(url)-1]
+	}
+	return url
+}
+
 func getJWT(loginApi string, usrname string, passwd string) string {
 	body := fmt.Sprintf("username=%s&password=%s", usrname, passwd)
 	request, _ := http.NewRequest("POST", loginApi, strings.NewReader(body))
@@ -123,31 +104,43 @@ func getJWT(loginApi string, usrname string, passwd string) string {
 	return respJson["accessToken"].(string)
 }
 
-func SaveConfig(url string, config string) bool {
+func SaveConfig(url string, configs []NacosConfig) bool {
 	domain := url[7:]
 	FolderName = strings.Replace(domain, ".", "_", -1)
 	FolderName = strings.Replace(FolderName, ":", "_", -1)
-	FolderName = "results/" + FolderName
-	if !exists(FolderName) {
-		err := os.MkdirAll(FolderName, 0766)
+	basePath,_ := os.Getwd()
+	foldPath := filepath.Join(basePath,"results",FolderName)
+	if !exists(foldPath) {
+		err := os.MkdirAll(foldPath, 0766)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	allConf := FolderName + "/all_config.txt"
-	f, err := os.Create(allConf)
-	if err != nil {
-		fmt.Println("[ ERROR ] create file fail .")
-		return false
-	} else {
-		_, err = f.Write([]byte(config))
+	for _,config := range configs{
+		nameSpacePath := filepath.Join(foldPath,config.Name)
+		if !exists(nameSpacePath) {
+			err := os.MkdirAll(nameSpacePath, 0766)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		//fmt.Println(nameSpacePath)
+		NameSpaceFolder = append(NameSpaceFolder,nameSpacePath)
+		allConf := nameSpacePath + "/all_config.txt"
+		f, err := os.Create(allConf)
+		if err != nil {
+			fmt.Println("[ ERROR ] create file fail .")
+			return false
+		} else {
+			_, err = f.Write([]byte(config.Config))
+		}
 	}
-	fmt.Println("[ SUCCESS ] Save in path:" + allConf)
+	fmt.Println("[ SUCCESS ] Save in path:" + foldPath)
 	return true
 }
 
-func SavePasswd(passwdz []string) bool {
-	passwdText := FolderName + "/passwd.txt"
+func SavePasswd(path string,passwdz []string) bool {
+	passwdText := path + "/passwd.txt"
 	f, err := os.Create(passwdText)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
@@ -162,8 +155,8 @@ func SavePasswd(passwdz []string) bool {
 	return true
 }
 
-func SaveAKSK(akskz []string) bool {
-	akskText := FolderName + "/aksk.txt"
+func SaveAKSK(path string,akskz []string) bool {
+	akskText := path + "/aksk.txt"
 	f, err := os.Create(akskText)
 	if err != nil {
 		fmt.Println("[ ERROR ] create file fail .")
@@ -196,5 +189,5 @@ func Banner() string {
  |  \| | / _ \| |  | | | \___ \| |   |  _|   / _ \ | ' / 
  | |\  |/ ___ \ |__| |_| |___) | |___| |___ / ___ \| . \ 
  |_| \_/_/   \_\____\___/|____/|_____|_____/_/   \_\_|\_\
-                                         Author:a1  v1.1            `
+                                         Author:a1  v1.2            `
 }

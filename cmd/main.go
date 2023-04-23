@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"nacosleak/analyze"
+	"nacosleak/models"
 	"nacosleak/utils"
+	"os"
 )
 
 
@@ -15,8 +16,13 @@ func main(){
 	flag.Parse()
 	fmt.Println(utils.Banner())
 	if utils.Url != ""{
-		config := utils.GetConfig(utils.Url)
-		utils.SaveConfig(utils.Url,config)
-		analyze.Analyze()
+		namespace := models.GetNameSpace(utils.Url)
+		fmt.Println(namespace)
+		err := models.GetConfig(utils.Url,namespace)
+		if err != nil {
+			os.Exit(-1)
+		}
+		utils.SaveConfig(utils.Url,namespace)
+		models.Analyze()
 	}
 }
