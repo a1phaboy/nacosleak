@@ -7,7 +7,7 @@ nacosleak.exe -url http://nacosurl [-u]username [-p]password
 默认会在当前文件夹生成以下文件：
 
 
-results/
+results/namespace/
 
 
 => all_config.txt  所有的配置文件信息
