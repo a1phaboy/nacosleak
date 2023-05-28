@@ -9,7 +9,7 @@ import (
 
 func GetNameSpace(url string) (nameSpaces []utils.NacosConfig){
 	resp := utils.GetResp(utils.UrlFormat(url)+utils.NAMESPACE_API,false)
-	if resp == nil {
+	if resp.StatusCode != 200 {
 		fmt.Println("[ ERROR ] Get namespace fail .")
 		return nil
 	}

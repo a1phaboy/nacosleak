@@ -16,6 +16,7 @@ const CONFIG_API = "/nacos/v1/cs/configs?dataId=&group=&appName=&config_tags=&pa
 const CONFIG_API_NGINX = "/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=100&tenant=%s&search=accurate"
 const LOGIN_API = "/nacos/v1/auth/users/login"
 const LOGIN_API_NGINX = "/v1/auth/users/login"
+const DEFAULT_AUTH = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuYWNvcyIsImV4cCI6OTYxODEyMzY5N30.RzTeDJFFdJn2gpDUEhI-3Gd9ABklwe_Z-tORkaerFnM"
 var Usrname string
 var Passwd string
 var Url string
@@ -28,6 +29,7 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 	}
 	clt := &http.Client{Transport: tr}
 	reqest, err := http.NewRequest("GET", targetApi, nil)
+	reqest.Header.Set("Authorization",DEFAULT_AUTH)
 	if Auth {
 		jwt := getJWT(Url+LOGIN_API, Usrname, Passwd)
 		if jwt == "" {
@@ -189,5 +191,5 @@ func Banner() string {
  |  \| | / _ \| |  | | | \___ \| |   |  _|   / _ \ | ' / 
  | |\  |/ ___ \ |__| |_| |___) | |___| |___ / ___ \| . \ 
  |_| \_/_/   \_\____\___/|____/|_____|_____/_/   \_\_|\_\
-                                         Author:a1  v1.2            `
+                                         By:a1  v1.3            `
 }

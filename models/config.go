@@ -28,17 +28,25 @@ func GetConfig(url string,namespace []utils.NacosConfig) (err error) {
 			return
 		}
 		Config := make(map[string]interface{})
-		err = json.Unmarshal(body, &Config)
+		if string(body) != ""{
+			err = json.Unmarshal(body, &Config)
+			if err != nil {
+				err = fmt.Errorf("json.Unmarshal fail")
+				fmt.Println(body)
+				return
+			}
+		}
 		var yaml_data interface{}
 		var config string
-		for _, v := range Config["pageItems"].([]interface{}) {
-			item := v.(map[string]interface{})
-			config = config + fmt.Sprintf("\n--------------------      %v     --------------------\n",item["dataId"].(string))
-			yaml.Unmarshal([]byte(item["content"].(string)), &yaml_data)
-			config = config + item["content"].(string)
-
+		if Config["pageItems"] != nil {
+			for _, v := range Config["pageItems"].([]interface{}) {
+				item := v.(map[string]interface{})
+				config = config + fmt.Sprintf("\n--------------------      %v     --------------------\n",item["dataId"].(string))
+				yaml.Unmarshal([]byte(item["content"].(string)), &yaml_data)
+				config = config + item["content"].(string)
+			}
+			fmt.Println("[ SUCCESS ] Get configs on nacos success .")
 		}
-		fmt.Println("[ SUCCESS ] Get configs on nacos success .")
 		//return config
 		//configs = append(configs,config)
 		namespace[i].Config = config
