@@ -22,6 +22,7 @@ var Passwd string
 var Url string
 var FolderName string
 var NameSpaceFolder []string
+var BasePath string
 
 func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 	tr := &http.Transport{
@@ -47,7 +48,7 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 		fmt.Println("[ ERROR ] Cannot connect to target, plz check out ")
 		os.Exit(0)
 	}
-	if resp.StatusCode == 401 {
+	if resp.StatusCode == 401 || resp.StatusCode == 500 {
 		fmt.Println("[ INFO ] Get configs Fail, I think nacos.core.auth.enabled is true .")
 		if Usrname != "" && Passwd != "" {
 			fmt.Println("[ INFO ] start to get config with Auth .")
@@ -110,8 +111,10 @@ func SaveConfig(url string, configs []NacosConfig) bool {
 	domain := url[7:]
 	FolderName = strings.Replace(domain, ".", "_", -1)
 	FolderName = strings.Replace(FolderName, ":", "_", -1)
-	basePath,_ := os.Getwd()
-	foldPath := filepath.Join(basePath,"results",FolderName)
+	if BasePath == ""{
+		BasePath,_ = os.Getwd()
+	}
+	foldPath := filepath.Join(BasePath,"results",FolderName)
 	if !exists(foldPath) {
 		err := os.MkdirAll(foldPath, 0766)
 		if err != nil {
