@@ -7,19 +7,33 @@ import (
 	"nacosleak/utils"
 )
 
-func GetNameSpace(url string) (nameSpaces []utils.NacosConfig){
-	resp := utils.GetResp(utils.UrlFormat(url)+utils.NAMESPACE_API,false)
+func GetNameSpace(url string) (nameSpaces []utils.NacosConfig,err error){
+	resp,err,code := utils.GetResp(utils.UrlFormat(url)+utils.NAMESPACE_API,false)
+	if err != nil && code == 404{
+		resp,err,code = utils.GetResp(utils.UrlFormat(url)+utils.NAMESPACE_API_NGINX,false)
+		if err != nil {
+			return
+		}else{
+			utils.Nginx = true
+		}
+	}
 	if resp.StatusCode != 200 {
 		fmt.Println("[ ERROR ] Get namespace fail .")
-		return nil
+		err = fmt.Errorf("[ ERROR ] Get namespace fail .")
+		return nil,err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("[ ERROR ] read response body fail .")
-		return nil
+		err = fmt.Errorf("[ ERROR ] read response body fail .")
+		return nil,err
 	}
 	var bd map[string]interface{}
-	json.Unmarshal(body,&bd)
+	err = json.Unmarshal(body, &bd)
+	if err != nil {
+		err = fmt.Errorf("[ ERROR ] handle json.Unmarshal fail.")
+		return nil, err
+	}
 	data := bd["data"].([]interface{})
 	for _,v:= range data {
 		vv := v.(map[string]interface{})

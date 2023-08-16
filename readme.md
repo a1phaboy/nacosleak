@@ -1,6 +1,11 @@
 ![](https://socialify.git.ci/a1phaboy/nacosleak/image?font=Source%20Code%20Pro&language=1&name=1&owner=1&pattern=Circuit%20Board&stargazers=1&theme=Dark)
 ## usage
-nacosleak.exe -t http://nacosurl.com/ [-u]username [-p]password [-s]savepath 
+
+              -t   target
+             [-ts] targets filepath
+             [-u]  username 
+             [-p]  password 
+             [-s]  savepath 
 
 由于nacos默认部署是不开启auth认证，因此可以尝试不指定-u和-p参数
 

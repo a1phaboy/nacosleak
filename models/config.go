@@ -12,15 +12,28 @@ import (
 func GetConfig(url string,namespace []utils.NacosConfig) (err error) {
 	for i,v := range namespace {
 		var resp *http.Response
-		if v.Name == "public" {
-			resp = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API,""), false)
+		if !utils.Nginx  {
+			if v.Name == "public" {
+				resp,err,_ = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API,""), false)
+			}else{
+				resp,err,_ = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API,v.Tenant), false)
+			}
+			if err != nil {
+				err = fmt.Errorf("[ ERROR ] Get Resp fail .")
+				return
+			}
 		}else{
-			resp = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API,v.Tenant), false)
+			if v.Name == "public" {
+				resp,err,_ = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API_NGINX,""), false)
+			}else{
+				resp,err,_ = utils.GetResp(utils.UrlFormat(url)+fmt.Sprintf(utils.CONFIG_API_NGINX,v.Tenant), false)
+			}
+			if err != nil {
+				err = fmt.Errorf("[ ERROR ] Get Resp fail .")
+				return
+			}
 		}
-		if resp == nil {
-			err = fmt.Errorf("[ ERROR ] Get Resp fail .")
-			return
-		}
+
 		var body []byte
 		body, err = ioutil.ReadAll(resp.Body)
 		if err != nil {

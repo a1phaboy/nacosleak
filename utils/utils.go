@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,11 +22,13 @@ const DEFAULT_AUTH = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuYWNvcyIsImV4cCI6OT
 var Usrname string
 var Passwd string
 var Url string
+var UrlsFile string
 var FolderName string
 var NameSpaceFolder []string
 var BasePath string
+var Nginx bool
 
-func GetResp(targetApi string, Auth bool) (resp *http.Response) {
+func GetResp(targetApi string, Auth bool) (resp *http.Response,err error,statusCode int) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -35,28 +39,31 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 		jwt := getJWT(Url+LOGIN_API, Usrname, Passwd)
 		if jwt == "" {
 			fmt.Println("[ ERROR ] Get JWT fail :username or password is incorrect .")
-			os.Exit(0)
+			err = fmt.Errorf("[ ERROR ] Get JWT fail :username or password is incorrect .")
+			return
 		}
 		reqest.Header.Set("accessToken", jwt)
 	}
 	resp, err = clt.Do(reqest)
 	if err != nil {
 		fmt.Println("[ ERROR ] Cannot connect to target, plz check out ")
-		os.Exit(0)
+		err = fmt.Errorf("[ ERROR ] Cannot connect to target, plz check out ")
+		return
 	}
+	statusCode = resp.StatusCode
 	if resp.StatusCode == 404 {
-		fmt.Println("[ ERROR ] Cannot connect to target, plz check out ")
-		os.Exit(0)
+		err = fmt.Errorf("[ ERROR ] Cannot connect to target, plz check out ")
+		return
 	}
 	if resp.StatusCode == 401 || resp.StatusCode == 500 {
 		fmt.Println("[ INFO ] Get configs Fail, I think nacos.core.auth.enabled is true .")
 		if Usrname != "" && Passwd != "" {
 			fmt.Println("[ INFO ] start to get config with Auth .")
-			resp = GetResp(targetApi, true)
-			return resp
+			resp,err,statusCode = GetResp(targetApi, true)
+			return
 		} else {
 			fmt.Println("[ ERROR ] target nacos needs Auth")
-			os.Exit(0)
+			err = fmt.Errorf("[ ERROR ] target nacos needs Auth")
 		}
 	}
 	if resp.StatusCode == 403 {
@@ -65,22 +72,27 @@ func GetResp(targetApi string, Auth bool) (resp *http.Response) {
 			fmt.Println("[ ERROR ] username or password is incorrect .")
 			os.Exit(0)
 		} else {
-			resp = GetResp(targetApi, true)
-			return resp
+			resp,err,statusCode = GetResp(targetApi, true)
+			return
 		}
 
 	}
 	if resp.StatusCode == 200 {
-		return resp
+		return
 	}
-	return nil
+	return
 }
 
-func UrlFormat (url string ) string {
-	if strings.LastIndex(url, "/") == len(url)-1 {
-		url = url[:len(url)-1]
+func UrlFormat (Url string ) string {
+	var u *url.URL
+	if strings.HasPrefix(Url,"http") || strings.HasPrefix(Url,"https") {
+		u, _ = url.Parse(Url)
+		return fmt.Sprintf("%s://%s",u.Scheme,u.Host)
+	}else{
+		u,_ = url.Parse("//"+Url)
+		u.Scheme = "http"
 	}
-	return url
+	return fmt.Sprintf("%s://%s",u.Scheme,u.Host)
 }
 
 func getJWT(loginApi string, usrname string, passwd string) string {
@@ -107,9 +119,9 @@ func getJWT(loginApi string, usrname string, passwd string) string {
 	return respJson["accessToken"].(string)
 }
 
-func SaveConfig(url string, configs []NacosConfig) bool {
-	domain := url[7:]
-	FolderName = strings.Replace(domain, ".", "_", -1)
+func SaveConfig(Url string, configs []NacosConfig) bool {
+	domain,_ := url.Parse(Url)
+	FolderName = strings.Replace(domain.Host, ".", "_", -1)
 	FolderName = strings.Replace(FolderName, ":", "_", -1)
 	if BasePath == ""{
 		BasePath,_ = os.Getwd()
@@ -187,6 +199,19 @@ func exists(path string) bool {
 	return true
 }
 
+func ReadTargetFile(path string) (targets []string,err error){
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		targets = append(targets, scanner.Text())
+	}
+	return targets, scanner.Err()
+}
+
 func Banner() string {
 	return `  
   _   _    _    ____ ___  ____  _     _____    _    _  __
@@ -194,5 +219,5 @@ func Banner() string {
  |  \| | / _ \| |  | | | \___ \| |   |  _|   / _ \ | ' / 
  | |\  |/ ___ \ |__| |_| |___) | |___| |___ / ___ \| . \ 
  |_| \_/_/   \_\____\___/|____/|_____|_____/_/   \_\_|\_\
-                                         By:a1  v1.5            `
+                                         By:a1  v1.6            `
 }
