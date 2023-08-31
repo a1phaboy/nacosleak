@@ -87,7 +87,7 @@ func UrlFormat (Url string ) string {
 	var u *url.URL
 	if strings.HasPrefix(Url,"http") || strings.HasPrefix(Url,"https") {
 		u, _ = url.Parse(Url)
-		return fmt.Sprintf("%s://%s",u.Scheme,u.Host)
+		return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, strings.TrimRight(u.Path, "/"))
 	}else{
 		u,_ = url.Parse("//"+Url)
 		u.Scheme = "http"
