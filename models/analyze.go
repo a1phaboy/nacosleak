@@ -54,7 +54,7 @@ func Analyze() {
 				akskText = append(akskText,strings.TrimSpace(as))
 			}
 		}
-		utils.SavePasswd(v,passwdText)
+		utils.SavePasswd(v,utils.DeduplicateRepeatData(passwdText))
 		utils.SaveAKSK(v,akskText)
 	}
 

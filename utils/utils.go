@@ -87,7 +87,7 @@ func UrlFormat (Url string ) string {
 	var u *url.URL
 	if strings.HasPrefix(Url,"http") || strings.HasPrefix(Url,"https") {
 		u, _ = url.Parse(Url)
-		return fmt.Sprintf("%s://%s",u.Scheme,u.Host)
+		return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, strings.TrimRight(u.Path, "/"))
 	}else{
 		u,_ = url.Parse("//"+Url)
 		u.Scheme = "http"
@@ -121,7 +121,11 @@ func getJWT(loginApi string, usrname string, passwd string) string {
 
 func SaveConfig(Url string, configs []NacosConfig) bool {
 	domain,_ := url.Parse(Url)
-	FolderName = strings.Replace(domain.Host, ".", "_", -1)
+	if domain.Host != "" {
+		FolderName = strings.Replace(domain.Host, ".", "_", -1)
+	}else{
+		FolderName = strings.Replace(domain.String(), ".", "_", -1)
+	}
 	FolderName = strings.Replace(FolderName, ":", "_", -1)
 	if BasePath == ""{
 		BasePath,_ = os.Getwd()
@@ -210,6 +214,24 @@ func ReadTargetFile(path string) (targets []string,err error){
 		targets = append(targets, scanner.Text())
 	}
 	return targets, scanner.Err()
+}
+
+
+func DeduplicateRepeatData(passwdz []string) []string {
+	diff := make(map[string]struct{},0)
+	var arr []string
+	for _,passwd := range passwdz {
+		_,exist := diff[passwd]
+		if exist {
+			continue
+		}else{
+			diff[passwd] = struct{}{}
+		}
+	}
+	for key,_ := range diff {
+		arr = append(arr,key)
+	}
+	return arr
 }
 
 func Banner() string {
