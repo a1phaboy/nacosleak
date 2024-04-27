@@ -3,7 +3,9 @@ package utils
 import (
 	"bufio"
 	"crypto/rand"
+	"fmt"
 	"math/big"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -15,7 +17,7 @@ func Banner() string {
  |  \| | / _ \| |  | | | \___ \| |   |  _|   / _ \ | ' / 
  | |\  |/ ___ \ |__| |_| |___) | |___| |___ / ___ \| . \ 
  |_| \_/_/   \_\____\___/|____/|_____|_____/_/   \_\_|\_\
-                                         By:a1  v2.0            `
+                                         By:a1  v2.1            `
 }
 
 func ReadTargetFile(path string) (targets []string, err error) {
@@ -29,6 +31,18 @@ func ReadTargetFile(path string) (targets []string, err error) {
 		targets = append(targets, scanner.Text())
 	}
 	return targets, scanner.Err()
+}
+
+func UrlFormat(Url string) string {
+	var u *url.URL
+	if strings.HasPrefix(Url, "http") || strings.HasPrefix(Url, "https") {
+		u, _ = url.Parse(Url)
+		return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	} else {
+		u, _ = url.Parse("//" + Url)
+		u.Scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 }
 
 // 生成一个随机的6位字符串

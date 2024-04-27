@@ -5,7 +5,7 @@
              [-ts] targets filepath   目标文件（适用多目标）
              [-p]  proxy   代理 （eg:http://127.0.0.1:7890）
              [-s]  savepath  默认当前文件夹下，可指定文件夹
-
+    eg: nacosleak.exe -t target -p http://127.0.0.1:7890
 
 
 默认会在当前文件夹(如果不指定文件夹)生成以下文件：

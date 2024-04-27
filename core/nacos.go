@@ -55,14 +55,15 @@ type Item struct {
 }
 
 func NewNacosClient(url, proxy string, auth ...Auth) (*Nacos, error) {
+
 	if len(auth) == 0 {
 		return &Nacos{
-			Url:   url,
+			Url:   utils.UrlFormat(url),
 			Proxy: proxy,
 		}, nil
 	}
 	return &Nacos{
-		Url:   url,
+		Url:   utils.UrlFormat(url),
 		Auth:  auth[0],
 		Proxy: proxy,
 	}, nil
