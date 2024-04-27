@@ -189,7 +189,7 @@ func (f *Nacos) AddUser() error {
 		return err
 	}
 	if data["code"].(float64) == 200 {
-		fmt.Printf("[%s] add user success! [+] %s/%s\n", f.Url, usrname, pwd)
+		fmt.Println("[", f.Url, "]", "add user success! [+]", usrname, "/", pwd)
 		f.Auth.Username = usrname
 		f.Auth.Password = pwd
 	}
