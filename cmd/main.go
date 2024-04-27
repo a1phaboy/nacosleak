@@ -3,51 +3,70 @@ package main
 import (
 	"flag"
 	"fmt"
-	"nacosleak/models"
+	"nacosleak/core"
 	"nacosleak/utils"
-	"os"
+	"sync"
 )
 
-var targets []string
+var (
+	Url      string
+	UrlsFile string
+	BasePath string
+	Proxy    string
+	targets  []string
+)
 
-func main(){
-	flag.StringVar(&utils.Url,"t","","目标nacos的url")
-	flag.StringVar(&utils.UrlsFile,"ts","","批量扫描，含有URLs的txt文件路径")
-	flag.StringVar(&utils.Usrname,"u","","用户名（可选）")
-	flag.StringVar(&utils.Passwd,"p","","密码（可选）")
-	flag.StringVar(&utils.BasePath,"s","","保存到指定路径（可选）")
+func main() {
+	flag.StringVar(&Url, "t", "", "目标nacos的url")
+	flag.StringVar(&UrlsFile, "ts", "", "批量扫描，含有URLs的txt文件路径")
+	flag.StringVar(&BasePath, "s", "", "保存到指定路径（可选）")
+	flag.StringVar(&Proxy, "p", "", "代理地址（可选）")
 	flag.Parse()
 	fmt.Println(utils.Banner())
-	if utils.UrlsFile != ""{
-		urls,err := utils.ReadTargetFile(utils.UrlsFile)
+	if UrlsFile != "" {
+		urls, err := utils.ReadTargetFile(UrlsFile)
 		if err != nil {
 			fmt.Println("打开文件失败")
 			return
 		}
-		targets = append(targets,urls...)
-	}else if utils.Url != "" {
-		targets = append(targets,utils.Url)
+		targets = append(targets, urls...)
+	} else if Url != "" {
+		targets = append(targets, Url)
 	}
-	fmt.Println("[*] 目标Total:",len(targets))
-	for _,target := range targets{
-		utils.Nginx = false
-		fmt.Println("[+] start target: ",target)
-		namespace,err := models.GetNameSpace(target)
-		if err != nil {
-			fmt.Println("[-] Get ",target," namespace fail.")
-			continue
-		}
-		fmt.Println("NameSpace: ")
-		for _,v := range namespace{
-			fmt.Println("   ",v.Name)
-		}
-		err = models.GetConfig(target,namespace)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(-1)
-		}
-		utils.SaveConfig(target,namespace)
-		models.Analyze()
+	var wg sync.WaitGroup
+	fmt.Println("[*] 目标Total:", len(targets))
+	for _, target := range targets {
+		wg.Add(1)
+		go func(target string) {
+			defer wg.Done()
+			taskRun(target)
+		}(target)
+	}
+	wg.Wait()
 
+}
+
+func taskRun(target string) {
+	fmt.Println("[+] start target: ", target)
+	cli, err := core.NewNacosClient(target, Proxy)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+	//先尝试未授权
+	if err = core.GetConfigUnAuth(cli); err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		//任意用户添加
+		err = core.GetConfigWithAuth(cli)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	if err = cli.SaveConfig(BasePath); err != nil {
+		return
+	}
+
 }
