@@ -54,17 +54,13 @@ func taskRun(target string) {
 		return
 	}
 	//先尝试未授权
-	if err = core.GetConfigUnAuth(cli); err != nil {
+	err = core.GetConfigUnAuth(cli)
+	if err != nil {
 		fmt.Println(err)
-		return
-	} else {
 		//任意用户添加
 		err = core.GetConfigWithAuth(cli)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
+		return
+	} 
 	if err = cli.SaveConfig(BasePath); err != nil {
 		return
 	}
